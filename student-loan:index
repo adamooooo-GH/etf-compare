@@ -1,0 +1,375 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ReferenceLine 
+} from 'recharts';
+
+/**
+ * Icons mapped as SVG paths for a clean, dependency-free UI
+ */
+const I = {
+  bank: "M3 21h18M3 10h18M5 10v11M9 10v11M13 10v11M17 10v11M12 3l8 7H4l8-7z",
+  calc: "M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM9 7h6M9 11h6M9 15h6",
+  chart: "M18 20V10M12 20V4M6 20v-6",
+  user: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 7a4 4 0 0 1 0 8 4 4 0 0 1 0-8z",
+  help: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-15v.01M12 10c0 1.5.5 2 1 2.5s1 1 1 2.5",
+  arrow: "M5 12h14M12 5l7 7-7 7",
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  history: "M12 8v4l3 3m6-3a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 3",
+  check: "M20 6L9 17l-5-5",
+  sun: "M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z",
+  moon: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+};
+
+const Icon = ({ d, size = 18, color = "currentColor", className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d={d} />
+  </svg>
+);
+
+const App = () => {
+  // Plan 1 Constants (2025/26 update)
+  const THRESHOLD_2025 = 26065;
+  const REPAYMENT_RATE = 0.09;
+  const WRITE_OFF_WINDOW = 25; 
+
+  // State Inputs
+  const [gradYear, setGradYear] = useState(2015);
+  const [currentBalance, setCurrentBalance] = useState(20000);
+  const [currentSalary, setCurrentSalary] = useState(50000);
+  const [salaryGrowth, setSalaryGrowth] = useState(3);
+  const [expectedRpi, setExpectedRpi] = useState(3.2); 
+  const [investmentReturn, setInvestmentReturn] = useState(7);
+  const [retirementYear, setRetirementYear] = useState(2041);
+
+  // UI State
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenStudentLoanTutorial');
+    if (!hasSeenTutorial) setShowTutorial(true);
+    
+    // Check system preference for dark mode
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setIsDarkMode(true);
+    }
+  }, []);
+
+  const closeTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('hasSeenStudentLoanTutorial', 'true');
+  };
+
+  const currentYear = new Date().getFullYear();
+
+  // Calculation Engine
+  const comparisonData = useMemo(() => {
+    let results = [];
+    let loanBalA = parseFloat(currentBalance) || 0;
+    let investmentBalA = parseFloat(currentBalance) || 0; 
+    let investmentBalB = 0; 
+    
+    const writeOffYear = parseInt(gradYear) + 1 + WRITE_OFF_WINDOW;
+    const yearsToSimulate = Math.max(1, (writeOffYear - currentYear) + 5);
+
+    for (let i = 0; i < yearsToSimulate; i++) {
+      const year = currentYear + i;
+      const isPostWriteOff = year > writeOffYear;
+      const isActiveSalary = year < parseInt(retirementYear);
+      const salaryThisYear = isActiveSalary ? currentSalary * Math.pow(1 + (salaryGrowth / 100), i) : 0;
+      
+      const interestRate = isPostWriteOff ? 0 : (expectedRpi / 100);
+      const interestAdded = loanBalA * interestRate;
+      const annualRepayment = (isActiveSalary && !isPostWriteOff) 
+        ? Math.max(0, (salaryThisYear - THRESHOLD_2025) * REPAYMENT_RATE) 
+        : 0;
+      
+      if (loanBalA > 0 && !isPostWriteOff) {
+        const actualRepayment = Math.min(loanBalA + interestAdded, annualRepayment);
+        loanBalA = Math.max(0, loanBalA + interestAdded - actualRepayment);
+      } else if (isPostWriteOff) {
+        loanBalA = 0;
+      }
+
+      investmentBalA = investmentBalA * (1 + investmentReturn / 100);
+      investmentBalB = (investmentBalB * (1 + investmentReturn / 100)) + (isActiveSalary && !isPostWriteOff ? annualRepayment : 0);
+
+      results.push({
+        year,
+        remainingDebt: Math.round(-loanBalA),
+        netWealthA: Math.round(investmentBalA - loanBalA),
+        netWealthB: Math.round(investmentBalB),
+      });
+    }
+    return results;
+  }, [currentBalance, currentSalary, salaryGrowth, expectedRpi, investmentReturn, retirementYear, gradYear]);
+
+  const finalStats = useMemo(() => comparisonData[comparisonData.length - 1], [comparisonData]);
+  const winA = finalStats.netWealthA > finalStats.netWealthB;
+
+  const steps = [
+    {
+      title: "Welcome to the Modeller",
+      content: "This tool helps you decide if it's better to pay off your Plan 1 student loan today using your savings, or keep your savings and stay on the monthly repayment plan.",
+      icon: <Icon d={I.bank} size={48} color="#6366f1" />
+    },
+    {
+      title: "Step 1: Your Current Situation",
+      content: "Enter your current loan balance and salary on the left. This sets the baseline for the simulation.",
+      icon: <Icon d={I.calc} size={48} color="#6366f1" />
+    },
+    {
+      title: "Step 2: Compare the Paths",
+      content: "We compare Path A (keeping your savings and paying monthly) against Path B (paying off the loan now and investing the monthly savings instead).",
+      icon: <Icon d={I.arrow} size={48} color="#6366f1" />
+    },
+    {
+      title: "Step 3: See the Result",
+      content: "The chart and boxes will show you which path leads to the highest 'Net Wealth' after the loan is eventually written off.",
+      icon: <Icon d={I.chart} size={48} color="#6366f1" />
+    }
+  ];
+
+  // Dynamic Theme Styling Classes
+  const themeClass = isDarkMode ? "dark bg-[#0f172a] text-[#f8fafc]" : "bg-[#f1f5f9] text-[#1e293b]";
+  const cardClass = isDarkMode 
+    ? "bg-slate-900/60 backdrop-blur-xl border-slate-800 shadow-2xl" 
+    : "bg-white/70 backdrop-blur-xl border-white shadow-xl shadow-slate-200/50";
+  const inputClass = `w-full ${isDarkMode ? 'bg-slate-800/50 border-slate-700 text-white' : 'bg-white/50 border-slate-200/60 text-slate-900'} border p-2.5 rounded-xl font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm`;
+  const labelClass = "block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1";
+
+  return (
+    <div className={`min-h-screen font-['DM_Sans',sans-serif] selection:bg-indigo-100 selection:text-indigo-900 relative overflow-hidden transition-colors duration-500 ${themeClass}`}>
+      
+      {/* Dynamic Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-40 transition-colors duration-1000 ${isDarkMode ? 'bg-indigo-950' : 'bg-indigo-200'} animate-pulse`} />
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] opacity-30 transition-colors duration-1000 ${isDarkMode ? 'bg-emerald-950' : 'bg-emerald-100'}`} />
+        <div className={`absolute top-[20%] right-[10%] w-[20%] h-[20%] rounded-full blur-[80px] opacity-20 transition-colors duration-1000 ${isDarkMode ? 'bg-pink-950' : 'bg-pink-100'}`} />
+      </div>
+
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md">
+          <div className={`${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-white/40'} backdrop-blur-2xl rounded-[32px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] max-w-lg w-full overflow-hidden border`}>
+            <div className="p-10 text-center">
+              <div className="flex justify-center mb-8 drop-shadow-xl">{steps[tutorialStep].icon}</div>
+              <h2 className={`text-3xl font-extrabold tracking-tight mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{steps[tutorialStep].title}</h2>
+              <p className="text-slate-500 leading-relaxed mb-10 text-lg">{steps[tutorialStep].content}</p>
+              
+              <div className="flex items-center justify-between gap-6">
+                <button onClick={closeTutorial} className="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors tracking-wide uppercase">Skip</button>
+                <div className="flex gap-3">
+                  {tutorialStep > 0 && (
+                    <button onClick={() => setTutorialStep(s => s - 1)} className={`px-5 py-2.5 rounded-xl font-bold text-sm ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>Back</button>
+                  )}
+                  <button onClick={() => tutorialStep === steps.length - 1 ? closeTutorial() : setTutorialStep(s => s + 1)} className="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition-all flex items-center gap-2">
+                    {tutorialStep === steps.length - 1 ? "Start" : "Next"} <Icon d={I.arrow} size={14} color="white" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className={`flex w-full h-1 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+              {steps.map((_, i) => (
+                <div key={i} className={`flex-1 transition-all duration-700 ${i <= tutorialStep ? 'bg-indigo-500' : 'bg-transparent'}`} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-12">
+        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200/20 pb-10">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/20">
+                <Icon d={I.bank} size={24} color="white" />
+              </div>
+              <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em]">Strategy Lab</span>
+            </div>
+            <h1 className={`text-4xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Plan 1 Student Loan <span className="text-slate-400 font-medium">Modeller</span></h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`p-3 rounded-2xl transition-all border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-yellow-400' : 'bg-white border-slate-200 text-slate-600'} shadow-sm`}
+            >
+              <Icon d={isDarkMode ? I.sun : I.moon} size={20} color="currentColor" />
+            </button>
+            <button onClick={() => { setTutorialStep(0); setShowTutorial(true); }} className={`flex items-center gap-2 font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-indigo-400' : 'bg-white/60 border-indigo-100 text-indigo-600'}`}>
+              <Icon d={I.help} size={16} color="currentColor" /> Guide
+            </button>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Controls Panel */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className={`p-8 rounded-[32px] border transition-all duration-500 ${cardClass}`}>
+              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                <Icon d={I.calc} size={16} color="#94a3b8" /> Current Position
+              </h2>
+              <div className="space-y-5">
+                <div>
+                  <label className={labelClass}>Graduation Year</label>
+                  <input type="number" value={gradYear} onChange={e => setGradYear(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Student loan remaining (£)</label>
+                  <input type="number" value={currentBalance} onChange={e => setCurrentBalance(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Current Salary (£)</label>
+                  <input type="number" value={currentSalary} onChange={e => setCurrentSalary(e.target.value)} className={inputClass} />
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-8 rounded-[32px] border transition-all duration-500 ${cardClass}`}>
+              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                <Icon d={I.chart} size={16} color="#94a3b8" /> Assumptions
+              </h2>
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Salary ↑ %</label>
+                    <input type="number" step="0.5" value={salaryGrowth} onChange={e => setSalaryGrowth(e.target.value)} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Interest %</label>
+                    <input type="number" step="0.1" value={expectedRpi} onChange={e => setExpectedRpi(e.target.value)} className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClass}>Market Return %</label>
+                  <input type="number" step="0.5" value={investmentReturn} onChange={e => setInvestmentReturn(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Retirement Year</label>
+                  <div className="relative">
+                    <input type="number" value={retirementYear} onChange={e => setRetirementYear(e.target.value)} className={inputClass} />
+                    <Icon d={I.user} size={14} color="#94a3b8" className="absolute right-3 top-3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Results Panel */}
+          <div className="lg:col-span-8 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Outcome A */}
+              <div className={`p-8 rounded-[32px] border-2 transition-all duration-500 relative overflow-hidden group ${winA ? 'border-indigo-500 bg-white/10' : 'border-transparent bg-white/5 opacity-70'}`}>
+                {winA && <div className="absolute top-0 right-0 p-3"><span className="bg-indigo-600 text-white text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg shadow-indigo-500/30">Winner</span></div>}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`p-3 rounded-2xl transition-colors ${winA ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                    <Icon d={I.history} size={24} color="currentColor" />
+                  </div>
+                  <div>
+                    <h3 className={`font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Stay on monthly</h3>
+                    <p className="text-xs text-slate-400">Path A</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 leading-relaxed mb-8">Invest your cash now; let the SLC take monthly chunks from your salary.</p>
+                <div className="border-t border-slate-500/10 pt-6">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Wealth at {finalStats.year}</span>
+                  <p className={`text-3xl font-black mt-1 ${winA ? 'text-indigo-500' : 'text-slate-400'}`}>£{finalStats.netWealthA.toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Outcome B */}
+              <div className={`p-8 rounded-[32px] border-2 transition-all duration-500 relative overflow-hidden group ${!winA ? 'border-emerald-500 bg-white/10' : 'border-transparent bg-white/5 opacity-70'}`}>
+                {!winA && <div className="absolute top-0 right-0 p-3"><span className="bg-emerald-600 text-white text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-lg shadow-emerald-500/30">Winner</span></div>}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`p-3 rounded-2xl transition-colors ${!winA ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                    <Icon d={I.shield} size={24} color="currentColor" />
+                  </div>
+                  <div>
+                    <h3 className={`font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Lump sum payoff</h3>
+                    <p className="text-xs text-slate-400">Path B</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 leading-relaxed mb-8">Wipe the debt today and reinvest the "extra" monthly income into the market.</p>
+                <div className="border-t border-slate-500/10 pt-6">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Wealth at {finalStats.year}</span>
+                  <p className={`text-3xl font-black mt-1 ${!winA ? 'text-emerald-500' : 'text-slate-400'}`}>£{finalStats.netWealthB.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Chart */}
+            <div className={`p-10 rounded-[40px] border transition-all duration-500 ${cardClass}`}>
+              <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4">
+                <div>
+                  <h3 className={`text-xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Cumulative Wealth Projection</h3>
+                  <p className="text-sm text-slate-400">Comparing Path A vs Path B (inclusive of debt)</p>
+                </div>
+                <div className="flex gap-4">
+                   <div className="flex items-center gap-2"><div className="w-3 h-1 bg-indigo-500 rounded-full" /><span className="text-[10px] font-bold text-slate-400 uppercase">Path A</span></div>
+                   <div className="flex items-center gap-2"><div className="w-3 h-1 bg-emerald-500 rounded-full" /><span className="text-[10px] font-bold text-slate-400 uppercase">Path B</span></div>
+                </div>
+              </header>
+              <div className="h-[380px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={comparisonData}>
+                    <defs>
+                      <linearGradient id="colorA" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorB" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke={isDarkMode ? "#334155" : "#e2e8f0"} />
+                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} dy={15} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} tickFormatter={v => `£${v/1000}k`} />
+                    <Tooltip 
+                      contentStyle={{
+                        borderRadius: '24px', 
+                        border: 'none', 
+                        backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', 
+                        padding: '16px'
+                      }} 
+                      itemStyle={{ color: isDarkMode ? '#f1f5f9' : '#1e293b' }}
+                      formatter={(value) => [`£${value.toLocaleString()}`, ""]}
+                    />
+                    <Area type="monotone" dataKey="netWealthA" stroke="#6366f1" fill="url(#colorA)" strokeWidth={4} isAnimationActive={false} />
+                    <Area type="monotone" dataKey="netWealthB" stroke="#10b981" fill="url(#colorB)" strokeWidth={4} isAnimationActive={false} />
+                    <Area type="monotone" dataKey="remainingDebt" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} strokeWidth={2} strokeDasharray="8 8" isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Calculations Grid */}
+            <div className={`rounded-[40px] p-10 relative overflow-hidden shadow-2xl transition-all duration-500 ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-slate-800 text-white'}`}>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2" />
+              <div className="relative z-10">
+                <h3 className="text-xl font-black tracking-tight mb-8 flex items-center gap-3">
+                  <Icon d={I.check} size={24} color="#818cf8" /> Logic Breakdown
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-4">
+                    <h4 className="text-indigo-400 font-bold uppercase tracking-widest text-[11px]">Path A Mechanics</h4>
+                    <p className="text-slate-400 text-sm leading-relaxed">Your lump sum stays in the market, growing at {investmentReturn}% annually. Meanwhile, your loan balance effectively creates a "negative wealth" anchor that decays over time as you pay 9% above the threshold.</p>
+                  </div>
+                  <div className="space-y-4">
+                    <h4 className="text-emerald-400 font-bold uppercase tracking-widest text-[11px]">Path B Mechanics</h4>
+                    <p className="text-slate-400 text-sm leading-relaxed">The "Opportunity Cost" model. We assume the lump sum is gone instantly, but the money you would have paid to the SLC is instead "re-invested" into your portfolio every month, compounding over the same window.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
