@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Personal Finance Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-a: #e8f4f0; --bg-b: #f0f4ff; --bg-c: #fdf0f8;
+      --orb1: rgba(16,185,129,0.2); --orb2: rgba(99,102,241,0.15); --orb3: rgba(236,72,153,0.12);
+      --glass-bg: rgba(255,255,255,0.55);
+      --glass-border: rgba(255,255,255,0.78);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --glass-hover: 0 16px 48px rgba(16,185,129,0.15), 0 2px 8px rgba(0,0,0,0.06);
+      --text-1: #0f172a; --text-2: #475569; --text-3: #94a3b8;
+      --divider: rgba(0,0,0,0.07);
+      --tbc-bg: rgba(0,0,0,0.03);
+      --tbc-border: rgba(0,0,0,0.07);
+      --pill-bg: rgba(16,185,129,0.1); --pill-text: #059669;
+      --tbc-pill-bg: rgba(0,0,0,0.06); --tbc-pill-text: #94a3b8;
+      --info-bg: rgba(240,249,255,0.7); --info-border: rgba(186,230,253,0.8); --info-text: #0c4a6e;
+    }
+
+    html.dark {
+      --bg-a: #081c15; --bg-b: #0d0f2a; --bg-c: #1a0818;
+      --orb1: rgba(16,185,129,0.22); --orb2: rgba(99,102,241,0.22); --orb3: rgba(236,72,153,0.15);
+      --glass-bg: rgba(255,255,255,0.06);
+      --glass-border: rgba(255,255,255,0.11);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.2);
+      --glass-hover: 0 16px 48px rgba(16,185,129,0.2), 0 2px 8px rgba(0,0,0,0.4);
+      --text-1: #f1f5f9; --text-2: #94a3b8; --text-3: #475569;
+      --divider: rgba(255,255,255,0.08);
+      --tbc-bg: rgba(255,255,255,0.03);
+      --tbc-border: rgba(255,255,255,0.07);
+      --pill-bg: rgba(16,185,129,0.15); --pill-text: #34d399;
+      --tbc-pill-bg: rgba(255,255,255,0.07); --tbc-pill-text: #475569;
+      --info-bg: rgba(30,58,92,0.45); --info-border: rgba(59,130,246,0.25); --info-text: #bae6fd;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text-1);
+      min-height: 100vh;
+      transition: color 0.3s;
+    }
+
+    #bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(135deg, var(--bg-a) 0%, var(--bg-b) 50%, var(--bg-c) 100%);
+      transition: background 0.4s;
+    }
+    #bg::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 15% 25%, var(--orb1) 0%, transparent 55%); }
+    #bg::after  { content:''; position:absolute; inset:0; background: radial-gradient(circle at 85% 65%, var(--orb2) 0%, transparent 55%); }
+    #orb3       { position:absolute; inset:0;              background: radial-gradient(circle at 50% 90%, var(--orb3) 0%, transparent 50%); }
+
+    #root { position: relative; z-index: 1; }
+
+    .glass {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: box-shadow 0.25s, border-color 0.25s, transform 0.25s, background 0.3s;
+    }
+
+    .tool-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+    .tool-card:hover .glass {
+      box-shadow: var(--glass-hover);
+      border-color: rgba(16,185,129,0.35);
+      transform: translateY(-4px) scale(1.01);
+    }
+    .tool-card.tbc {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .theme-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text-2);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s;
+    }
+    .theme-btn:hover { background: rgba(16,185,129,0.15); color: var(--text-1); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="bg"><div id="orb3"></div></div>
+<div id="root"></div>
+
+<script>
+  // Dark mode — no React needed for a static page
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  let dark = prefersDark;
+  if (dark) document.documentElement.classList.add('dark');
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    dark = e.matches;
+    document.documentElement.classList.toggle('dark', dark);
+    updateBtn();
+  });
+
+  function toggleTheme() {
+    dark = !dark;
+    document.documentElement.classList.toggle('dark', dark);
+    updateBtn();
+  }
+
+  function updateBtn() {
+    const btn = document.getElementById('theme-btn');
+    if (!btn) return;
+    btn.innerHTML = dark
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/><path d="M12 17A5 5 0 1012 7a5 5 0 000 10z"/></svg> Light mode`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Dark mode`;
+  }
+
+  const TOOLS = [
+    {
+      name: 'ETF Comparator',
+      desc: 'Compare global passive funds side-by-side. See how compounding OCF fees erode your returns over time and score funds on coverage, cost, and tracking precision.',
+      href: './etf-compare/index.html',
+      emoji: '📊',
+      live: true,
+    },
+    {
+      name: 'Student Loan Calculator',
+      desc: 'Model your student loan repayments under Plan 2 and Plan 5. See projected balances, monthly payments, and total amount repaid over your career.',
+      href: './student-loan/index.html',
+      emoji: '🎓',
+      live: true,
+    },
+    {
+      name: 'Coming Soon',
+      desc: 'A new tool is on the way.',
+      href: null,
+      emoji: '🔧',
+      live: false,
+    },
+    {
+      name: 'Coming Soon',
+      desc: 'A new tool is on the way.',
+      href: null,
+      emoji: '🔧',
+      live: false,
+    },
+    {
+      name: 'Coming Soon',
+      desc: 'A new tool is on the way.',
+      href: null,
+      emoji: '🔧',
+      live: false,
+    },
+  ];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('root').innerHTML = `
+      <div style="min-height:100vh; padding:48px 24px;">
+        <div style="max-width:960px; margin:0 auto;">
+
+          <!-- Header -->
+          <header style="margin-bottom:48px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
+                  <span style="font-size:32px; line-height:1;">💷</span>
+                  <h1 style="font-size:32px; font-weight:800; color:var(--text-1); letter-spacing:-0.02em; line-height:1.1;">
+                    Personal Finance Hub
+                  </h1>
+                </div>
+                <p style="color:var(--text-3); font-size:14px; padding-left:44px;">
+                  A growing set of tools to help make better money decisions.
+                </p>
+              </div>
+              <button id="theme-btn" class="theme-btn" onclick="toggleTheme()"></button>
+            </div>
+
+            <!-- Info banner -->
+            <div style="background:var(--info-bg); border:1px solid var(--info-border);
+              backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+              border-radius:12px; padding:12px 16px; display:flex; gap:12px; align-items:flex-start;">
+              <span style="font-size:15px; line-height:1.6; flex-shrink:0;">💡</span>
+              <p style="font-size:13px; color:var(--info-text); line-height:1.65;">
+                Each tool below opens as a standalone interactive page — no login, no data stored, no ads.
+                Just click a card to open the tool.
+              </p>
+            </div>
+          </header>
+
+          <!-- Tool grid -->
+          <div class="grid">
+            ${TOOLS.map(t => `
+              <${t.live ? `a href="${t.href}" class="tool-card"` : `div class="tool-card tbc"`}>
+                <div class="glass" style="padding:24px; height:100%; display:flex; flex-direction:column; gap:16px;
+                  ${!t.live ? 'opacity:0.5;' : ''}">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span style="font-size:28px; line-height:1;">${t.emoji}</span>
+                    <span style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+                      padding:3px 10px; border-radius:999px;
+                      background:${t.live ? 'var(--pill-bg)' : 'var(--tbc-pill-bg)'};
+                      color:${t.live ? 'var(--pill-text)' : 'var(--tbc-pill-text)'};">
+                      ${t.live ? 'Live' : 'Coming soon'}
+                    </span>
+                  </div>
+                  <div style="flex:1;">
+                    <h2 style="font-size:17px; font-weight:700; color:var(--text-1); margin-bottom:8px; line-height:1.3;">
+                      ${t.name}
+                    </h2>
+                    <p style="font-size:13px; color:var(--text-2); line-height:1.65;">
+                      ${t.desc}
+                    </p>
+                  </div>
+                  ${t.live ? `
+                    <div style="display:flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:var(--pill-text);">
+                      Open tool
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                      </svg>
+                    </div>` : ''}
+                </div>
+              </${t.live ? 'a' : 'div'}>
+            `).join('')}
+          </div>
+
+          <!-- Footer -->
+          <footer style="margin-top:56px; text-align:center; color:var(--text-3); font-size:12px;">
+            Built with ☕ · No tracking · No ads · Open source
+          </footer>
+
+        </div>
+      </div>
+    `;
+    updateBtn();
+  });
+</script>
+</body>
+</html>
