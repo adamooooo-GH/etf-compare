@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Loan Modeller — Plan 1</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-a: #e8eaf6; --bg-b: #f0f4ff; --bg-c: #e8f5ee;
+      --orb1: rgba(99,102,241,0.2); --orb2: rgba(16,185,129,0.15); --orb3: rgba(59,130,246,0.12);
+      --glass-bg: rgba(255,255,255,0.85);
+      --glass-border: rgba(255,255,255,0.9);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --glass-hover: 0 16px 48px rgba(99,102,241,0.15), 0 2px 8px rgba(0,0,0,0.06);
+      --text-1: #0f172a; --text-2: #475569; --text-3: #94a3b8;
+      --divider: rgba(0,0,0,0.07);
+      --input-bg: rgba(255,255,255,0.9);
+      --input-border: rgba(203,213,225,0.9);
+      --dark-card: #1e293b;
+      --track: rgba(0,0,0,0.1);
+    }
+
+    html.dark {
+      --bg-a: #0f0c29; --bg-b: #0d1b2a; --bg-c: #0a1628;
+      --orb1: rgba(99,102,241,0.28); --orb2: rgba(16,185,129,0.18); --orb3: rgba(59,130,246,0.2);
+      --glass-bg: rgba(30,41,59,0.85);
+      --glass-border: rgba(255,255,255,0.11);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.2);
+      --glass-hover: 0 16px 48px rgba(99,102,241,0.22), 0 2px 8px rgba(0,0,0,0.35);
+      --text-1: #f1f5f9; --text-2: #94a3b8; --text-3: #475569;
+      --divider: rgba(255,255,255,0.08);
+      --input-bg: rgba(255,255,255,0.07);
+      --input-border: rgba(255,255,255,0.13);
+      --dark-card: #0f172a;
+      --track: rgba(255,255,255,0.12);
+    }
+
+    body { font-family: 'DM Sans', sans-serif; color: var(--text-1); min-height: 100vh; }
+    .mono { font-family: 'DM Mono', monospace; }
+
+    #bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(135deg, var(--bg-a) 0%, var(--bg-b) 50%, var(--bg-c) 100%);
+      transition: background 0.4s;
+    }
+    #bg::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 15% 20%, var(--orb1) 0%, transparent 55%); }
+    #bg::after  { content:''; position:absolute; inset:0; background: radial-gradient(circle at 85% 70%, var(--orb2) 0%, transparent 55%); }
+    #orb3       { position:absolute; inset:0; background: radial-gradient(circle at 50% 95%, var(--orb3) 0%, transparent 50%); }
+
+    #root { position: relative; z-index: 1; }
+
+    .glass {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.25s;
+    }
+
+    .input-field {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-1);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-field:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; border: 1px solid var(--glass-border);
+      background: var(--glass-bg); color: var(--text-2);
+      text-decoration: none;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s;
+    }
+    .nav-btn:hover { background: rgba(99,102,241,0.15); color: var(--text-1); }
+
+    input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 6px; border-radius: 9999px; outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      border-radius: 50%; background: #6366f1; cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.8);
+      box-shadow: 0 1px 6px rgba(99,102,241,0.4);
+    }
+
+    .outcome-card {
+      padding: 28px; border-radius: 24px;
+      border: 2px solid transparent;
+      transition: all 0.4s; position: relative; overflow: hidden;
+    }
+    .winner-blue   { border-color: #6366f1; background: rgba(99,102,241,0.08); }
+    .winner-emerald{ border-color: #10b981; background: rgba(16,185,129,0.08); }
+    .loser         { opacity: 0.55; background: rgba(255,255,255,0.02); }
+
+    .collapsible-body {
+      overflow: hidden;
+      transition: max-height 0.4s ease, opacity 0.3s ease;
+    }
+    .collapsible-body.open  { max-height: 600px; opacity: 1; }
+    .collapsible-body.closed{ max-height: 0;     opacity: 0; pointer-events: none; }
+
+    .grid-main  { display: grid; grid-template-columns: 290px 1fr; gap: 24px; align-items: start; }
+    .grid-2     { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    label { display: block; font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+
+    @media (max-width: 960px) { .grid-main { grid-template-columns: 1fr !important; } }
+    @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div id="bg"><div id="orb3"></div></div>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } = Recharts;
+
+const Icon = ({ d, size=15, color='currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={{display:'inline-block',verticalAlign:'middle',flexShrink:0}}>
+    {[].concat(d).map((p,i)=><path key={i} d={p}/>)}
+  </svg>
+);
+
+const ICONS = {
+  back:   "M19 12H5M12 5l-7 7 7 7",
+  sun:    ["M12 1v2","M12 21v2","M4.22 4.22l1.42 1.42","M18.36 18.36l1.42 1.42","M1 12h2","M21 12h2","M4.22 19.78l1.42-1.42","M18.36 5.64l1.42-1.42","M12 17A5 5 0 1012 7a5 5 0 000 10z"],
+  moon:   "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
+  info:   ["M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z","M12 8v4","M12 16h.01"],
+  chevD:  "M6 9l6 6 6-9",
+  chevU:  "M18 15l-6-6-6 6",
+  calc:   ["M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z","M9 7h6","M9 11h6","M9 15h4"],
+  trend:  "M22 7l-8.5 8.5-5-5L2 17",
+  history:"M12 8v4l3 3m6-3a9 9 0 11-9-9c2.52 0 4.85.83 6.72 2.24L21 3",
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  check:  ["M22 11.08V12a10 10 0 11-5.93-9.14","M22 4L12 14.01l-3-3"],
+};
+
+const fmt = v => `£${Math.round(v).toLocaleString('en-GB')}`;
+
+function SliderRow({ label, value, min, max, step, onChange, color='#6366f1', display }) {
+  const pct = ((value - min) / (max - min) * 100).toFixed(1);
+  return (
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+        <label style={{margin:0}}>{label}</label>
+        <span style={{fontFamily:'DM Mono,monospace',fontSize:12,fontWeight:700,color}}>{display ?? value}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))}
+        style={{background:`linear-gradient(to right,${color} ${pct}%,var(--track) ${pct}%)`}}/>
+    </div>
+  );
+}
+
+function App() {
+  const THRESHOLD   = 24990;
+  const REPAY_RATE  = 0.09;
+
+  const [loanBal,       setLoanBal]       = useState(25000);
+  const [gradYear,      setGradYear]      = useState(2015);
+  const [salary,        setSalary]        = useState(45000);
+  const [salaryGrowth,  setSalaryGrowth]  = useState(3);
+  const [interest,      setInterest]      = useState(3.5);
+  const [mktReturn,     setMktReturn]     = useState(7);
+  const [stopWork,      setStopWork]      = useState(2035);
+  const [dark,          setDark]          = useState(()=>window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [howOpen,       setHowOpen]       = useState(true);
+
+  useEffect(()=>{
+    document.documentElement.classList.toggle('dark', dark);
+  },[dark]);
+
+  useEffect(()=>{
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const fn = e => setDark(e.matches);
+    mq.addEventListener('change', fn);
+    return () => mq.removeEventListener('change', fn);
+  },[]);
+
+  const { data, writeOffYear } = useMemo(()=>{
+    let results   = [];
+    let balA      = loanBal;
+    let invA      = loanBal;
+    let invB      = 0;
+    const startY  = 2025, endY = 2042;
+    let sal       = salary;
+    const firstRepay = gradYear + 1;
+    const woy    = firstRepay + 25;
+
+    for (let i = 0; i <= endY - startY; i++) {
+      const yr        = startY + i;
+      const beforeWO  = yr < woy;
+      const atWO      = yr === woy;
+      const working   = yr < stopWork;
+      const repay     = (working && beforeWO) ? Math.max(0,(sal-THRESHOLD)*REPAY_RATE) : 0;
+
+      if (i > 0) {
+        invA = invA * (1 + mktReturn/100);
+        invB = invB * (1 + mktReturn/100);
+        if (balA > 0 && beforeWO) {
+          const int = balA * (interest/100);
+          balA = balA + int - Math.min(balA+int, repay);
+        }
+        if (working) invB += repay;
+      }
+
+      const debt   = beforeWO ? balA : 0;
+      const nwA    = invA - debt;
+      const nwB    = invB;
+
+      if (atWO && yr >= 2025 && yr <= 2042) {
+        results.push({ displayYear:yr, netGainA:Math.round(invA-balA), netGainB:Math.round(nwB), debtOnly:-Math.round(balA) });
+        results.push({ displayYear:yr, netGainA:Math.round(invA),      netGainB:Math.round(nwB), debtOnly:0 });
+      } else if (yr >= 2025 && yr <= 2042) {
+        results.push({ displayYear:yr, netGainA:Math.round(nwA), netGainB:Math.round(nwB), debtOnly:-Math.round(debt) });
+      }
+      if (i > 0 && working) sal = sal * (1 + salaryGrowth/100);
+    }
+    return { data: results, writeOffYear: woy };
+  }, [loanBal, gradYear, salary, salaryGrowth, interest, mktReturn, stopWork]);
+
+  const last   = data[data.length-1] || { netGainA:0, netGainB:0, displayYear:2042 };
+  const winA   = last.netGainA >= last.netGainB;
+
+  const gridLineColor = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const ttBg          = dark ? '#1e293b' : '#ffffff';
+
+  return (
+    <div style={{minHeight:'100vh', padding:'32px 20px'}}>
+      <div style={{maxWidth:1200, margin:'0 auto'}}>
+
+        {/* ── Header ── */}
+        <header style={{marginBottom:32}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12,marginBottom:6}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <a href="../index.html" className="nav-btn">
+                <Icon d={ICONS.back} size={13} color="var(--text-2)"/> Home
+              </a>
+              <h1 style={{fontSize:24,fontWeight:800,color:'var(--text-1)',letterSpacing:'-0.02em'}}>
+                Student Loan Modeller
+              </h1>
+            </div>
+            <button className="nav-btn" onClick={()=>setDark(d=>!d)}>
+              <Icon d={dark?ICONS.sun:ICONS.moon} size={13} color="var(--text-2)"/>
+              {dark?'Light':'Dark'}
+            </button>
+          </div>
+          <p style={{color:'var(--text-3)',fontSize:13}}>
+            UK Plan 1 — Should you pay off your loan today or stay on monthly repayments?
+          </p>
+        </header>
+
+        {/* ── How it works collapsible ── */}
+        <div style={{borderRadius:20,overflow:'hidden',marginBottom:24,background:'var(--dark-card)',color:'white',boxShadow:'0 4px 24px rgba(0,0,0,0.15)'}}>
+          <button onClick={()=>setHowOpen(o=>!o)}
+            style={{width:'100%',padding:'16px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',
+              background:'none',border:'none',color:'white',cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <Icon d={ICONS.info} size={18} color="#818cf8"/>
+              <span style={{fontSize:15,fontWeight:700}}>How this tool works</span>
+            </div>
+            <Icon d={howOpen?ICONS.chevU:ICONS.chevD} size={18} color="#94a3b8"/>
+          </button>
+          <div className={`collapsible-body ${howOpen?'open':'closed'}`}>
+            <div style={{padding:'0 24px 24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:28}}>
+              <div>
+                <p style={{fontSize:11,fontWeight:700,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10}}>What this tool does</p>
+                <p style={{fontSize:13,color:'#94a3b8',lineHeight:1.7}}>
+                  This tool answers a simple question: if you have enough savings to pay off your student loan today, should you? It models your total net wealth over time under both scenarios, so you can see which path leaves you better off by the time your loan is cleared or written off.
+                </p>
+              </div>
+              <div>
+                <p style={{fontSize:11,fontWeight:700,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10}}>The two paths</p>
+                <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                  <div style={{display:'flex',gap:10,fontSize:13,color:'#94a3b8',lineHeight:1.65}}>
+                    <span style={{color:'#6366f1',fontWeight:800,flexShrink:0}}>A</span>
+                    <span>Keep your savings invested and pay off the loan gradually through monthly salary repayments. At the write-off date, any remaining debt is cancelled — and your net worth jumps accordingly.</span>
+                  </div>
+                  <div style={{display:'flex',gap:10,fontSize:13,color:'#94a3b8',lineHeight:1.65}}>
+                    <span style={{color:'#10b981',fontWeight:800,flexShrink:0}}>B</span>
+                    <span>Use your savings to clear the loan today. The monthly repayments you would have made are then reinvested or saved instead — building wealth from scratch over the same window.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Main grid ── */}
+        <div className="grid-main">
+
+          {/* Controls */}
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div className="glass" style={{padding:24}}>
+              <h3 style={{fontSize:11,fontWeight:800,color:'var(--text-3)',textTransform:'uppercase',
+                letterSpacing:'0.15em',textAlign:'center',marginBottom:20}}>Simulation Inputs</h3>
+
+              <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                <div>
+                  <label>Current Balance & Pot (£)</label>
+                  <input className="input-field" type="number" value={loanBal} onChange={e=>setLoanBal(Number(e.target.value))}/>
+                </div>
+                <div>
+                  <label>Graduation Year</label>
+                  <input className="input-field" type="number" value={gradYear} onChange={e=>setGradYear(Number(e.target.value))}/>
+                </div>
+                <div className="grid-2">
+                  <div>
+                    <label>Salary (£)</label>
+                    <input className="input-field" type="number" value={salary} onChange={e=>setSalary(Number(e.target.value))}/>
+                  </div>
+                  <div>
+                    <label>Rise % p.a.</label>
+                    <input className="input-field" type="number" step="0.5" value={salaryGrowth} onChange={e=>setSalaryGrowth(Number(e.target.value))}/>
+                  </div>
+                </div>
+
+                <div style={{paddingTop:16,borderTop:'1px solid var(--divider)',display:'flex',flexDirection:'column',gap:18}}>
+                  <SliderRow label="Stop Working" value={stopWork} min={2025} max={2060} step={1} onChange={setStopWork} display={stopWork} color="#6366f1"/>
+                  <SliderRow label="Debt Interest %" value={interest} min={0} max={10} step={0.1} onChange={setInterest} display={`${interest}%`} color="#6366f1"/>
+                  <SliderRow label="Market Return %" value={mktReturn} min={0} max={15} step={0.5} onChange={setMktReturn} display={`${mktReturn}%`} color="#10b981"/>
+                </div>
+              </div>
+            </div>
+
+            {/* Key metrics */}
+            <div className="glass" style={{padding:20}}>
+              <h3 style={{fontSize:11,fontWeight:800,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:14}}>Key Metrics</h3>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {[
+                  ['Write-off Year', writeOffYear, '#6366f1'],
+                  ['Repayment Threshold', `£${THRESHOLD.toLocaleString()}`, 'var(--text-2)'],
+                  ['Repayment Rate', '9% above threshold', 'var(--text-2)'],
+                ].map(([k,v,c])=>(
+                  <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{fontSize:12,color:'var(--text-3)'}}>{k}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:c,fontFamily:'DM Mono,monospace'}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Results */}
+          <div style={{display:'flex',flexDirection:'column',gap:20}}>
+
+            {/* Outcome cards */}
+            <div className="grid-2">
+              <div className={`outcome-card ${winA?'winner-blue':'loser'}`}>
+                {winA && (
+                  <div style={{position:'absolute',top:12,right:12,background:'#6366f1',color:'white',
+                    fontSize:9,fontWeight:800,padding:'3px 10px',borderRadius:999,textTransform:'uppercase',letterSpacing:'0.1em'}}>
+                    Winner
+                  </div>
+                )}
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                  <div style={{padding:10,borderRadius:14,background:winA?'#6366f1':'rgba(100,116,139,0.25)'}}>
+                    <Icon d={ICONS.history} size={18} color="white"/>
+                  </div>
+                  <div>
+                    <h3 style={{fontWeight:800,fontSize:15,color:'var(--text-1)'}}>Remain on student loan repayment plan</h3>
+                    <p style={{fontSize:11,color:'var(--text-3)'}}>Option A</p>
+                  </div>
+                </div>
+                <p style={{fontSize:12,color:'var(--text-2)',lineHeight:1.65,marginBottom:16}}>
+                  Save or invest the money you already have in savings accounts or stocks, and make salary repayments to pay off your student loan every month until the debt clears or is written off in 2041.
+                </p>
+                <div style={{borderTop:'1px solid var(--divider)',paddingTop:14}}>
+                  <p style={{fontSize:10,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Final net worth</p>
+                  <p style={{fontFamily:'DM Mono,monospace',fontSize:26,fontWeight:800,color:winA?'#6366f1':'var(--text-3)'}}>
+                    {fmt(last.netGainA)}
+                  </p>
+                </div>
+              </div>
+
+              <div className={`outcome-card ${!winA?'winner-emerald':'loser'}`}>
+                {!winA && (
+                  <div style={{position:'absolute',top:12,right:12,background:'#10b981',color:'white',
+                    fontSize:9,fontWeight:800,padding:'3px 10px',borderRadius:999,textTransform:'uppercase',letterSpacing:'0.1em'}}>
+                    Winner
+                  </div>
+                )}
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                  <div style={{padding:10,borderRadius:14,background:!winA?'#10b981':'rgba(100,116,139,0.25)'}}>
+                    <Icon d={ICONS.shield} size={18} color="white"/>
+                  </div>
+                  <div>
+                    <h3 style={{fontWeight:800,fontSize:15,color:'var(--text-1)'}}>Pay off student loan in full</h3>
+                    <p style={{fontSize:11,color:'var(--text-3)'}}>Option B</p>
+                  </div>
+                </div>
+                <p style={{fontSize:12,color:'var(--text-2)',lineHeight:1.65,marginBottom:16}}>
+                  Pay off the debt in full today. Reinvest or save your freed up monthly money that you would have used for repayments to build wealth.
+                </p>
+                <div style={{borderTop:'1px solid var(--divider)',paddingTop:14}}>
+                  <p style={{fontSize:10,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Final net worth</p>
+                  <p style={{fontFamily:'DM Mono,monospace',fontSize:26,fontWeight:800,color:!winA?'#10b981':'var(--text-3)'}}>
+                    {fmt(last.netGainB)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart */}
+            <div className="glass" style={{padding:28}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,flexWrap:'wrap',gap:12}}>
+                <div>
+                  <h3 style={{fontSize:16,fontWeight:700,color:'var(--text-1)',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>
+                    <Icon d={ICONS.trend} size={18} color="#6366f1"/> Net Worth Projection
+                  </h3>
+                  <p style={{fontSize:11,color:'var(--text-3)'}}>Option A vs Option B — including debt liability</p>
+                </div>
+              </div>
+              <div style={{height:380}}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data}>
+                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke={gridLineColor}/>
+                    <XAxis dataKey="displayYear" axisLine={false} tickLine={false}
+                      tick={{fill:'#94a3b8',fontSize:11,fontWeight:700}} dy={10}
+                      type="number" domain={[2025,2042]} allowDuplicatedCategory={false}/>
+                    <YAxis axisLine={false} tickLine={false}
+                      tick={{fill:'#94a3b8',fontSize:11,fontWeight:700}}
+                      tickFormatter={v=>`£${(v/1000).toFixed(0)}k`}/>
+                    <Tooltip
+                      contentStyle={{borderRadius:16,border:'none',backgroundColor:ttBg,
+                        boxShadow:'0 20px 40px rgba(0,0,0,0.15)',padding:'14px'}}
+                      itemStyle={{color:dark?'#f1f5f9':'#1e293b',fontSize:12}}
+                      labelFormatter={l=>`Year: ${l}`}
+                      formatter={v=>[`£${Math.round(v).toLocaleString('en-GB')}`]}
+                    />
+                    <Legend verticalAlign="top" height={40} iconType="circle"
+                      wrapperStyle={{fontSize:'11px',fontWeight:'bold',paddingBottom:8}}/>
+                    <ReferenceLine y={0} stroke="var(--divider)"/>
+                    <ReferenceLine x={writeOffYear} stroke="var(--text-3)" strokeDasharray="4 3"
+                      label={{value:'Write-off',position:'top',fill:'var(--text-3)',fontSize:10,fontWeight:700}}/>
+                    <Line name="Option A: Remain on Plan" type="monotone" dataKey="netGainA"
+                      stroke="#6366f1" strokeWidth={3} dot={false} isAnimationActive={false}/>
+                    <Line name="Option B: Pay Off in Full" type="monotone" dataKey="netGainB"
+                      stroke="#10b981" strokeWidth={3} dot={false} isAnimationActive={false}/>
+                    <Line name="Student Loan Debt" type="stepAfter" dataKey="debtOnly"
+                      stroke="#f43f5e" strokeWidth={2} strokeDasharray="6 4" dot={false} opacity={0.6} isAnimationActive={false}/>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Assumptions & caveats */}
+            <div style={{background:'var(--dark-card)',borderRadius:20,padding:28,color:'white'}}>
+              <h3 style={{fontSize:16,fontWeight:700,marginBottom:20,display:'flex',alignItems:'center',gap:8}}>
+                <Icon d={ICONS.info} size={18} color="#818cf8"/> Model Assumptions & Caveats
+              </h3>
+              <div className="grid-2">
+                <div>
+                  <p style={{fontSize:11,fontWeight:700,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10}}>What this model assumes</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {[
+                      'Investment returns are consistent year-on-year at your chosen rate',
+                      'Salary grows smoothly at your chosen rate with no gaps in employment',
+                      'Repayments in Option B are reinvested immediately each month',
+                      'The loan write-off happens at the end of the 25-year window',
+                    ].map((t,i) => (
+                      <div key={i} style={{display:'flex',gap:8,fontSize:12,color:'#94a3b8',lineHeight:1.6}}>
+                        <span style={{color:'#818cf8',flexShrink:0}}>·</span><span>{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p style={{fontSize:11,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10}}>What it doesn't account for</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {[
+                      'Tax on investment returns (e.g. capital gains or income tax on interest)',
+                      'Inflation eroding the real value of your savings or repayments over time',
+                      'Changes to the repayment threshold, interest rate, or write-off rules',
+                      'Life events — career breaks, redundancy, parental leave, or salary drops',
+                      'The psychological value of being debt-free',
+                    ].map((t,i) => (
+                      <div key={i} style={{display:'flex',gap:8,fontSize:12,color:'#94a3b8',lineHeight:1.6}}>
+                        <span style={{color:'#f87171',flexShrink:0}}>·</span><span>{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
