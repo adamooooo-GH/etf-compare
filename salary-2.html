@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Salary Tracker</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-a: #e8f4f0; --bg-b: #f0f4ff; --bg-c: #fdf0f8;
+      --orb1: rgba(16,185,129,0.2); --orb2: rgba(99,102,241,0.15); --orb3: rgba(236,72,153,0.12);
+      --glass-bg: rgba(255,255,255,0.55);
+      --glass-border: rgba(255,255,255,0.78);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --glass-hover: 0 16px 48px rgba(16,185,129,0.15), 0 2px 8px rgba(0,0,0,0.06);
+      --text-1: #0f172a; --text-2: #475569; --text-3: #94a3b8;
+      --divider: rgba(0,0,0,0.07);
+      --input-bg: rgba(248,250,252,0.8);
+      --input-border: rgba(0,0,0,0.1);
+      --stat-bg: rgba(248,250,252,0.7);
+      --stat-border: rgba(0,0,0,0.06);
+      --bar-track: rgba(0,0,0,0.08);
+      --footer-bg: rgba(248,250,252,0.6);
+      --emerald-header: rgba(5,150,105,0.85);
+      --emerald-tab: rgba(4,120,87,0.5);
+      --emerald-tab-active-text: #059669;
+    }
+
+    html.dark {
+      --bg-a: #081c15; --bg-b: #0d0f2a; --bg-c: #1a0818;
+      --orb1: rgba(16,185,129,0.22); --orb2: rgba(99,102,241,0.22); --orb3: rgba(236,72,153,0.15);
+      --glass-bg: rgba(255,255,255,0.06);
+      --glass-border: rgba(255,255,255,0.11);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.2);
+      --glass-hover: 0 16px 48px rgba(16,185,129,0.2), 0 2px 8px rgba(0,0,0,0.4);
+      --text-1: #f1f5f9; --text-2: #94a3b8; --text-3: #475569;
+      --divider: rgba(255,255,255,0.08);
+      --input-bg: rgba(255,255,255,0.06);
+      --input-border: rgba(255,255,255,0.1);
+      --stat-bg: rgba(255,255,255,0.04);
+      --stat-border: rgba(255,255,255,0.07);
+      --bar-track: rgba(255,255,255,0.08);
+      --footer-bg: rgba(0,0,0,0.15);
+      --emerald-header: rgba(5,150,105,0.75);
+      --emerald-tab: rgba(4,120,87,0.4);
+      --emerald-tab-active-text: #34d399;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text-1);
+      min-height: 100vh;
+      transition: color 0.3s;
+    }
+
+    #bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(135deg, var(--bg-a) 0%, var(--bg-b) 50%, var(--bg-c) 100%);
+      transition: background 0.4s;
+    }
+    #bg::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 15% 25%, var(--orb1) 0%, transparent 55%); }
+    #bg::after  { content:''; position:absolute; inset:0; background: radial-gradient(circle at 85% 65%, var(--orb2) 0%, transparent 55%); }
+    #orb3       { position:absolute; inset:0; background: radial-gradient(circle at 50% 90%, var(--orb3) 0%, transparent 50%); }
+    #root { position: relative; z-index: 1; }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+
+    .glass-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      overflow: hidden;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .theme-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text-2);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s;
+    }
+    .theme-btn:hover { background: rgba(16,185,129,0.15); color: var(--text-1); }
+
+    .glass-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-1);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.3s;
+      backdrop-filter: blur(8px);
+    }
+    .glass-input:focus {
+      border-color: rgba(16,185,129,0.5);
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+    }
+
+    .stat-pill {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px;
+      background: var(--stat-bg);
+      border: 1px solid var(--stat-border);
+      border-radius: 14px;
+      backdrop-filter: blur(8px);
+      transition: background 0.3s;
+    }
+
+    .label-text {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+    }
+
+    .mono { font-family: 'DM Mono', monospace; }
+  </style>
+</head>
+<body>
+<div id="bg"><div id="orb3"></div></div>
+<div id="root"></div>
+
+<script>
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  let dark = prefersDark;
+  if (dark) document.documentElement.classList.add('dark');
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    dark = e.matches;
+    document.documentElement.classList.toggle('dark', dark);
+    window.updateThemeBtn && window.updateThemeBtn();
+  });
+
+  function toggleTheme() {
+    dark = !dark;
+    document.documentElement.classList.toggle('dark', dark);
+    window.updateThemeBtn && window.updateThemeBtn();
+  }
+
+  function updateThemeBtn() {
+    const btn = document.getElementById('theme-btn');
+    if (!btn) return;
+    btn.innerHTML = dark
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/><path d="M12 17A5 5 0 1012 7a5 5 0 000 10z"/></svg> Light mode`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Dark mode`;
+  }
+
+  window.toggleTheme = toggleTheme;
+  window.updateThemeBtn = updateThemeBtn;
+</script>
+
+<script type="text/babel">
+  const { useState, useEffect, useMemo } = React;
+
+  // ─── SETTINGS PAGE ───────────────────────────────────────────────────────────
+  const SettingsPage = ({ onBack, config, setConfig }) => {
+    const timeValue = `${config.startHour.toString().padStart(2, '0')}:${config.startMinute.toString().padStart(2, '0')}`;
+
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div className="glass-card" style={{ maxWidth: 440, width: '100%' }}>
+
+          {/* Header */}
+          <div style={{ padding: '20px 24px', background: 'var(--emerald-header)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <button onClick={onBack} style={{ padding: 8, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.12)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.22)'}
+              onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.12)'}>
+              <i data-lucide="chevron-left" style={{ width: 18, height: 18 }}></i>
+            </button>
+            <h2 style={{ fontWeight: 800, fontSize: 16, color: 'white', letterSpacing: '-0.01em' }}>Tracker Settings</h2>
+            <div style={{ width: 34 }} />
+          </div>
+
+          {/* Fields */}
+          <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div>
+              <label className="label-text" style={{ display: 'block', marginBottom: 8 }}>Post-Tax Daily Rate (£)</label>
+              <input type="number" step="0.01" value={config.dailySalary}
+                onChange={e => setConfig({...config, dailySalary: parseFloat(e.target.value) || 0})}
+                className="glass-input mono" />
+            </div>
+
+            <div>
+              <label className="label-text" style={{ display: 'block', marginBottom: 8 }}>Work Start Time</label>
+              <input type="time" value={timeValue}
+                onChange={e => {
+                  const [h, m] = e.target.value.split(':');
+                  setConfig({...config, startHour: parseInt(h) || 0, startMinute: parseInt(m) || 0});
+                }}
+                className="glass-input" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label className="label-text" style={{ display: 'block', marginBottom: 8 }}>Days per Week</label>
+                <input type="number" min="1" max="7" value={config.daysPerWeek}
+                  onChange={e => setConfig({...config, daysPerWeek: parseInt(e.target.value) || 1})}
+                  className="glass-input mono" />
+              </div>
+              <div>
+                <label className="label-text" style={{ display: 'block', marginBottom: 8 }}>Hours per Day</label>
+                <input type="number" min="0.1" max="24" step="0.1" value={config.hoursPerDay}
+                  onChange={e => setConfig({...config, hoursPerDay: parseFloat(e.target.value) || 1})}
+                  className="glass-input mono" />
+              </div>
+            </div>
+
+            <div>
+              <label className="label-text" style={{ display: 'block', marginBottom: 8 }}>Annual Leave (Days)</label>
+              <input type="number" value={config.leaveDays}
+                onChange={e => setConfig({...config, leaveDays: parseInt(e.target.value) || 0})}
+                className="glass-input mono" />
+            </div>
+
+            <div style={{ paddingTop: 8 }}>
+              <button onClick={onBack}
+                style={{ width: '100%', padding: '14px 0', background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none', borderRadius: 14, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.3)', transition: 'opacity 0.2s, transform 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.opacity='0.9'; e.currentTarget.style.transform='translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity='1'; e.currentTarget.style.transform='translateY(0)'; }}>
+                Save &amp; View Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── DASHBOARD PAGE ───────────────────────────────────────────────────────────
+  const DashboardPage = ({ config, onSettings }) => {
+    const [now, setNow] = useState(new Date());
+    const [view, setView] = useState('day');
+
+    const DAILY_SALARY = config.dailySalary;
+    const DAYS_PER_WEEK = config.daysPerWeek;
+    const HOURS_PER_DAY = config.hoursPerDay;
+    const ANNUAL_LEAVE_DAYS = config.leaveDays;
+    const START_HOUR = config.startHour;
+    const START_MINUTE = config.startMinute;
+
+    const TARGETS = useMemo(() => {
+      const weekly = DAILY_SALARY * DAYS_PER_WEEK;
+      const yearly = DAILY_SALARY * DAYS_PER_WEEK * 52;
+      const monthly = yearly / 12;
+      return { day: DAILY_SALARY, week: weekly, month: monthly, year: yearly };
+    }, [config]);
+
+    useEffect(() => {
+      const timer = setInterval(() => setNow(new Date()), 1000);
+      return () => clearInterval(timer);
+    }, []);
+
+    const isWeekday = (date) => {
+      const day = date.getDay();
+      if (DAYS_PER_WEEK === 7) return true;
+      if (DAYS_PER_WEEK === 6) return day !== 0;
+      return day !== 0 && day !== 6;
+    };
+
+    const getWorkDaysInRange = (start, end) => {
+      let count = 0;
+      let cur = new Date(start.getTime()); cur.setHours(0,0,0,0);
+      let finish = new Date(end.getTime()); finish.setHours(0,0,0,0);
+      while (cur < finish) { if (isWeekday(cur)) count++; cur.setDate(cur.getDate() + 1); }
+      return count;
+    };
+
+    const progress = useMemo(() => {
+      const startOfWork = new Date(now); startOfWork.setHours(START_HOUR, START_MINUTE, 0, 0);
+      const endOfWork = new Date(startOfWork.getTime() + (HOURS_PER_DAY * 3600 * 1000));
+
+      let dayEarned = 0, dayStatus = 'Working';
+      if (now < startOfWork) { dayEarned = 0; dayStatus = 'Shift not started'; }
+      else if (now > endOfWork) { dayEarned = DAILY_SALARY; dayStatus = 'Day Complete'; }
+      else {
+        const elapsedMs = now.getTime() - startOfWork.getTime();
+        const totalMs = endOfWork.getTime() - startOfWork.getTime();
+        dayEarned = (elapsedMs / totalMs) * DAILY_SALARY;
+      }
+
+      const startOfWeek = new Date(now);
+      const dayIdx = now.getDay();
+      const diff = now.getDate() - dayIdx + (dayIdx === 0 ? -6 : 1);
+      startOfWeek.setDate(diff); startOfWeek.setHours(0,0,0,0);
+
+      const fullDaysCompletedThisWeek = getWorkDaysInRange(startOfWeek, now);
+      let weekEarned = (fullDaysCompletedThisWeek * DAILY_SALARY) + (isWeekday(now) ? dayEarned : 0);
+      weekEarned = Math.min(weekEarned, TARGETS.week);
+
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const fullDaysCompletedThisMonth = getWorkDaysInRange(firstOfMonth, now);
+      let monthEarned = (fullDaysCompletedThisMonth * DAILY_SALARY) + (isWeekday(now) ? dayEarned : 0);
+
+      const firstOfYear = new Date(now.getFullYear(), 0, 1);
+      const fullDaysCompletedThisYear = getWorkDaysInRange(firstOfYear, now);
+      let yearEarned = (fullDaysCompletedThisYear * DAILY_SALARY) + (isWeekday(now) ? dayEarned : 0);
+
+      return {
+        day:   { earned: dayEarned,   target: TARGETS.day,   status: dayStatus,                          subtitle: 'Real-time Daily Tracker',                              icon: 'list' },
+        week:  { earned: weekEarned,  target: TARGETS.week,  status: !isWeekday(now) ? 'Rest Day' : 'Active Week', subtitle: `${DAYS_PER_WEEK} Work Days`,               icon: 'calendar' },
+        month: { earned: monthEarned, target: TARGETS.month, status: 'Averaged Goal',                    subtitle: now.toLocaleString('default', { month: 'long' }),       icon: 'layers' },
+        year:  { earned: yearEarned,  target: TARGETS.year,  status: `${ANNUAL_LEAVE_DAYS} Days Leave`,  subtitle: now.getFullYear().toString(),                           icon: 'briefcase' },
+      };
+    }, [now, config, TARGETS]);
+
+    const currentData = progress[view];
+    const percentage = Math.min(100, (currentData.earned / currentData.target) * 100);
+    const remaining = Math.max(0, currentData.target - currentData.earned);
+
+    const getTitle = (v) => v === 'day' ? 'Daily Progress' : v.charAt(0).toUpperCase() + v.slice(1) + 'ly Progress';
+
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+
+        {/* Theme toggle — sits above card */}
+        <div style={{ width: '100%', maxWidth: 440, display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button id="theme-btn" className="theme-btn" onClick={() => { window.toggleTheme(); }} />
+        </div>
+
+        <div className="glass-card" style={{ maxWidth: 440, width: '100%' }}>
+
+          {/* Header */}
+          <div style={{ padding: '20px 24px 16px', background: 'var(--emerald-header)', backdropFilter: 'blur(12px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <h1 style={{ fontSize: 18, fontWeight: 800, color: 'white', letterSpacing: '-0.01em', marginBottom: 2 }}>{getTitle(view)}</h1>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{currentData.subtitle}</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <i data-lucide="wallet" style={{ width: 22, height: 22, color: 'rgba(255,255,255,0.25)' }}></i>
+                <button onClick={onSettings}
+                  style={{ padding: 8, borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.12)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'background 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.22)'}
+                  onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.12)'}>
+                  <i data-lucide="settings" style={{ width: 16, height: 16 }}></i>
+                </button>
+              </div>
+            </div>
+
+            {/* Tab switcher */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', background: 'var(--emerald-tab)', padding: 4, borderRadius: 14, gap: 4 }}>
+              {['day', 'week', 'month', 'year'].map(id => (
+                <button key={id} onClick={() => setView(id)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    padding: '8px 4px', borderRadius: 10, border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                    background: view === id ? 'rgba(255,255,255,0.95)' : 'transparent',
+                    color: view === id ? 'var(--emerald-tab-active-text)' : 'rgba(255,255,255,0.8)',
+                    boxShadow: view === id ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+                    fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 10, textTransform: 'capitalize',
+                  }}>
+                  <i data-lucide={progress[id].icon} style={{ width: 14, height: 14, marginBottom: 4 }}></i>
+                  {id}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '28px 28px 20px', display: 'flex', gap: 24, alignItems: 'center' }}>
+
+            {/* Vertical progress bar */}
+            <div style={{ position: 'relative', width: 72, height: 300, background: 'var(--bar-track)', borderRadius: 999, overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column-reverse', border: '3px solid var(--glass-border)' }}>
+              <div style={{ width: '100%', background: 'linear-gradient(to top, #059669, #34d399)', transition: 'height 1s ease', height: `${percentage}%` }}>
+                <div style={{ width: '100%', height: 3, background: 'rgba(255,255,255,0.5)', animation: 'pulse 2s infinite' }} />
+              </div>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(90deg)', fontSize: 9, fontWeight: 800, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.2em', whiteSpace: 'nowrap', pointerEvents: 'none', fontFamily: 'DM Mono, monospace' }}>
+                {percentage.toFixed(1)}% done
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div>
+                <p className="label-text" style={{ marginBottom: 4 }}>Earned {view === 'day' ? 'Today' : `This ${view}`}</p>
+                <div className="mono" style={{ fontSize: 40, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+                  £{currentData.earned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="stat-pill">
+                  <div style={{ padding: 8, background: 'rgba(16,185,129,0.12)', borderRadius: 10, display: 'flex' }}>
+                    <i data-lucide="trending-up" style={{ width: 16, height: 16, color: '#059669' }}></i>
+                  </div>
+                  <div>
+                    <p className="label-text">Remaining</p>
+                    <p className="mono" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
+                      £{remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+                <div className="stat-pill">
+                  <div style={{ padding: 8, background: 'rgba(99,102,241,0.12)', borderRadius: 10, display: 'flex' }}>
+                    <i data-lucide="clock" style={{ width: 16, height: 16, color: '#6366f1' }}></i>
+                  </div>
+                  <div>
+                    <p className="label-text">Status</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>{currentData.status}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ paddingTop: 14, borderTop: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between' }}>
+                <span className="mono" style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Goal: £{currentData.target.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span className="mono" style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  £{(DAILY_SALARY / HOURS_PER_DAY).toFixed(2)}/hr
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer clock */}
+          <div className="mono" style={{ padding: '12px 28px', background: 'var(--footer-bg)', borderTop: '1px solid var(--divider)', textAlign: 'center', fontSize: 11, color: 'var(--text-3)', backdropFilter: 'blur(8px)' }}>
+            {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })} — {now.toLocaleTimeString()}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── APP ─────────────────────────────────────────────────────────────────────
+  const App = () => {
+    const [currentPage, setCurrentPage] = useState('dashboard');
+    const [config, setConfig] = useState({
+      dailySalary: 177.47,
+      daysPerWeek: 5,
+      hoursPerDay: 7.4,
+      startHour: 9,
+      startMinute: 15,
+      leaveDays: 30,
+    });
+
+    useEffect(() => {
+      lucide.createIcons();
+      window.updateThemeBtn && window.updateThemeBtn();
+    }, [currentPage]);
+
+    if (currentPage === 'settings') {
+      return <SettingsPage onBack={() => setCurrentPage('dashboard')} config={config} setConfig={setConfig} />;
+    }
+    return <DashboardPage config={config} onSettings={() => setCurrentPage('settings')} />;
+  };
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
